@@ -1,0 +1,61 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* PrimeReact Card Styling */
+.p-card {
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 1px -1px rgba(0,0,0,0.2),
+              0 1px 1px 0 rgba(0,0,0,0.14),
+              0 1px 3px 0 rgba(0,0,0,0.12);
+}
+
+/* Calendar Component Styling */
+.p-calendar {
+  width: 100%;
+  max-width: 250px;
+}
+
+/* DataTable Styling */
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--surface-0);
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: var(--surface-0);
+  transition: background-color 0.2s;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--surface-100);
+}
+
+/* Toast Styling */
+.p-toast {
+  opacity: 1;
+  z-index: 1000;
+}
+
+/* Status Tag Styling */
+.status-badge {
+  border-radius: 2px;
+  padding: 0.25rem 0.5rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+.status-available {
+  background: var(--green-100);
+  color: var(--green-900);
+}
+
+.status-unavailable {
+  background: var(--red-100);
+  color: var(--red-900);
+}
