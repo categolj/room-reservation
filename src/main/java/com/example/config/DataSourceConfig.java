@@ -52,7 +52,7 @@ public class DataSourceConfig {
 	@Primary
 	public DataSource actualDataSource(@Qualifier("primaryDataSource") DataSource primaryDataSource,
 			@Qualifier("readReplicaDataSource") DataSource readReplicaDataSource) {
-		ReadOnlyTransactionRoutingDataSource routingDataSource = new ReadOnlyTransactionRoutingDataSource();
+		ReadOnlyTransactionRoutingDataSource routingDataSource = new ReadOnlyTransactionRoutingDataSource(true);
 		routingDataSource.setTargetDataSources(
 				Map.of(DataSourceType.READ_ONLY, readReplicaDataSource, DataSourceType.READ_WRITE, primaryDataSource));
 		routingDataSource.afterPropertiesSet();
