@@ -1,2 +1,2 @@
-image: ghcr.io/categolj/room-reservation@sha256:bc95fab9ea9b156303d499a501c72b778b3532afb158766aedba08c232d9d1da
-git_revision: 5144518fa1fac2cc3bfb2e55562fb15d6da60690
+image: ghcr.io/categolj/room-reservation@sha256:5d08ace0f26cc31f76c81aaff7ee9d845f3bca9470dc4fbea6d75519259140a1
+git_revision: 07d3eb3b43af6f2ef693249ffbc5e69fc5dd3c7b
