@@ -6,11 +6,13 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Read-only repository for reservation information
  */
 @Repository
+@Transactional(readOnly = true)
 public class ReservationViewRepository {
 
 	private final JdbcClient jdbcClient;

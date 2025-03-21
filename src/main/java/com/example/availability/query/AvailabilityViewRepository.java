@@ -6,8 +6,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
+@Transactional(readOnly = true)
 public class AvailabilityViewRepository {
 
 	private final JdbcClient jdbcClient;
@@ -16,6 +18,7 @@ public class AvailabilityViewRepository {
 		this.jdbcClient = jdbcClient;
 	}
 
+	@Transactional
 	public Optional<AvailabilityView> findOneForUpdate(UUID roomId, LocalDate date) {
 		return this.jdbcClient.sql("""
 				SELECT ra.room_id, r.room_name, ra.date FROM room_availability_view AS ra
