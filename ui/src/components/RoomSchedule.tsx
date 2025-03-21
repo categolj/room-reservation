@@ -181,7 +181,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                 setReservations(updatedReservations);
             };
             updateData();
-            setTimeout(updateData, 2000);
+            setTimeout(updateData, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
