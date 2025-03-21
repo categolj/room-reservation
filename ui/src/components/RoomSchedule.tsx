@@ -57,6 +57,11 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         return options;
     })();
 
+    const reloadReservations = async () => {
+        const reservations = await apiClient.getReservations(date, roomId);
+        setReservations(reservations);
+    };
+
     const handleDateChange = (offset: number) => {
         const currentDate = fromDateString(date);
         currentDate.setDate(currentDate.getDate() + offset);
@@ -83,8 +88,8 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
 
             setDialogVisible(false);
             setSelectedReservation(null);
-            const updatedReservations = await apiClient.getReservations(date, roomId);
-            setReservations(updatedReservations);
+            reloadReservations();
+            setTimeout(reloadReservations, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
@@ -106,9 +111,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                 } else {
                     throw new Error('Room not found');
                 }
-
-                const reservationsData = await apiClient.getReservations(date, roomId);
-                setReservations(reservationsData);
+                reloadReservations();
             } catch (err) {
                 toast.current?.show({
                     severity: 'error',
@@ -176,12 +179,8 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
             });
 
             setFormData({startTime: '', endTime: '', purpose: ''});
-            const updateData = async () => {
-                const updatedReservations = await apiClient.getReservations(date, roomId);
-                setReservations(updatedReservations);
-            };
-            updateData();
-            setTimeout(updateData, 1000);
+            reloadReservations();
+            setTimeout(reloadReservations, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
