@@ -176,8 +176,12 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
             });
 
             setFormData({startTime: '', endTime: '', purpose: ''});
-            const updatedReservations = await apiClient.getReservations(date, roomId);
-            setReservations(updatedReservations);
+            const updateData = async () => {
+                const updatedReservations = await apiClient.getReservations(date, roomId);
+                setReservations(updatedReservations);
+            };
+            updateData();
+            setTimeout(updateData, 2000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
