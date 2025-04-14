@@ -1,7 +1,7 @@
 package com.example.availability.web;
 
+import com.example.availability.query.AvailabilityService;
 import com.example.availability.query.AvailabilityView;
-import com.example.availability.query.AvailabilityViewRepository;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,15 +11,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AvailabilityController {
 
-	private final AvailabilityViewRepository availabilityViewRepository;
+	private final AvailabilityService availabilityService;
 
-	public AvailabilityController(AvailabilityViewRepository availabilityViewRepository) {
-		this.availabilityViewRepository = availabilityViewRepository;
+	public AvailabilityController(AvailabilityService availabilityService) {
+		this.availabilityService = availabilityService;
 	}
 
 	@GetMapping(path = "/api/availabilities")
 	public List<AvailabilityView> getAvailabilitiesByDate(@RequestParam LocalDate date) {
-		return this.availabilityViewRepository.findByDate(date);
+		return this.availabilityService.getAvailabilitiesByDate(date);
 	}
 
 }
