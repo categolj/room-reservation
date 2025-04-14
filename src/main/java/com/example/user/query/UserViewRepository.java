@@ -2,7 +2,6 @@ package com.example.user.query;
 
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +26,6 @@ public class UserViewRepository {
 		return this.jdbcClient.sql("""
 				SELECT user_id, email, password FROM user_view WHERE email = :email
 				""".trim()).param("email", email).query(UserView.class).optional();
-	}
-
-	@Transactional
-	public void save(UserView userView) {
-		this.jdbcClient.sql("""
-				INSERT INTO user_view (user_id, email, password) VALUES (:userId, :email, :password)
-				""".trim()).paramSource(new BeanPropertySqlParameterSource(userView)).update();
 	}
 
 }
