@@ -38,7 +38,7 @@ class ReservationCommandHandlerTest {
 		UUID reservationId = idGenerator.generateId();
 		UUID roomId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de3e");
 		UUID userId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de46");
-		LocalDate date = LocalDate.of(2025, 4, 1);
+		LocalDate date = LocalDate.now();
 		LocalTime startTime = LocalTime.of(10, 0);
 		LocalTime endTime = LocalTime.of(12, 0);
 		RequestReservationCommand command = new RequestReservationCommand(reservationId, roomId, date, startTime,
@@ -61,7 +61,7 @@ class ReservationCommandHandlerTest {
 	void handleRequestReservation_overlapped() {
 		UUID roomId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de3e");
 		UUID userId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de46");
-		LocalDate date = LocalDate.of(2025, 4, 1);
+		LocalDate date = LocalDate.now();
 		{
 			LocalTime startTime = LocalTime.of(10, 0);
 			LocalTime endTime = LocalTime.of(12, 0);
@@ -96,7 +96,7 @@ class ReservationCommandHandlerTest {
 	void handleRequestReservation_notOverlapped() {
 		UUID roomId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de3e");
 		UUID userId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de46");
-		LocalDate date = LocalDate.of(2025, 4, 1);
+		LocalDate date = LocalDate.now();
 		{
 			LocalTime startTime = LocalTime.of(10, 0);
 			LocalTime endTime = LocalTime.of(12, 0);
@@ -120,7 +120,7 @@ class ReservationCommandHandlerTest {
 	void handleCancelReservation() {
 		UUID roomId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de3e");
 		UUID userId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de46");
-		LocalDate date = LocalDate.of(2025, 4, 1);
+		LocalDate date = LocalDate.now();
 		LocalTime startTime = LocalTime.of(10, 0);
 		LocalTime endTime = LocalTime.of(12, 0);
 
@@ -152,7 +152,7 @@ class ReservationCommandHandlerTest {
 	void handleRequestReservation_after_cancel() {
 		UUID roomId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de3e");
 		UUID userId = UUID.fromString("018422b2-4843-7a62-935b-b4e65649de46");
-		LocalDate date = LocalDate.of(2025, 4, 1);
+		LocalDate date = LocalDate.now();
 		{
 			LocalTime startTime = LocalTime.of(10, 0);
 			LocalTime endTime = LocalTime.of(12, 0);
