@@ -28,7 +28,7 @@ public class ServiceLogAspect {
 
 		Object[] args = joinPoint.getArgs();
 
-		logger.info("event=methodStart class={} method={} args={}", simpleClassName, methodName, Arrays.toString(args));
+		logger.info("event=methodStart class={} method={} args=\"{}\"", simpleClassName, methodName, Arrays.toString(args));
 
 		long start = System.currentTimeMillis();
 		Object result = null;
@@ -37,14 +37,14 @@ public class ServiceLogAspect {
 			return result;
 		}
 		catch (Exception e) {
-			logger.error("event=exception class={} method={} exceptionType={} message={}", simpleClassName, methodName,
+			logger.error("event=exception class={} method={} exceptionType={} message=\"{}\"", simpleClassName, methodName,
 					e.getClass().getSimpleName(), e.getMessage(), e);
 			throw e;
 		}
 		finally {
 			long executionTime = System.currentTimeMillis() - start;
 
-			logger.info("event=methodEnd class={} method={} result={} executionTime={}ms", simpleClassName, methodName,
+			logger.info("event=methodEnd class={} method={} result=\"{}\" executionTime={}ms", simpleClassName, methodName,
 					result, executionTime);
 		}
 	}
