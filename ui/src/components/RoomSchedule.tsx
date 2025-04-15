@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {apiClient} from '../utils/apiClient';
 import {useNavigate, useParams} from 'react-router-dom';
 import {convertTimeFormat, fromDateString, toDateString} from '../utils/dateUtils';
@@ -57,10 +57,11 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         return options;
     })();
 
-    const reloadReservations = async () => {
+    // Memoize the reloadReservations function to avoid recreating it on each render
+    const reloadReservations = useCallback(async () => {
         const reservations = await apiClient.getReservations(date, roomId);
         setReservations(reservations);
-    };
+    }, [date, roomId]);
 
     const handleDateChange = (offset: number) => {
         const currentDate = fromDateString(date);
@@ -73,7 +74,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         setDialogVisible(true);
     };
 
-    const handleCancelReservation = async () => {
+    const handleCancelReservation = useCallback(async () => {
         if (!selectedReservation) return;
 
         try {
@@ -89,7 +90,11 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
             setDialogVisible(false);
             setSelectedReservation(null);
             reloadReservations();
-            setTimeout(reloadReservations, 1000);
+            
+            // Use a delay to fetch the latest data after the server processes the deletion
+            setTimeout(() => {
+                reloadReservations();
+            }, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
@@ -98,7 +103,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                 life: 3000
             });
         }
-    };
+    }, [selectedReservation, reloadReservations]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -127,9 +132,10 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         };
 
         fetchData();
-    }, [date, roomId]);
+    }, [date, roomId, reloadReservations]); // Added reloadReservations to dependency array
 
-    const validateForm = (data: ReservationFormData): string | null => {
+    // Memoize the validateForm function
+    const validateForm = useCallback((data: ReservationFormData): string | null => {
         if (!data.startTime || !data.endTime) {
             return 'Start time and end time are required';
         }
@@ -149,9 +155,9 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         }
 
         return null;
-    };
+    }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
@@ -180,7 +186,11 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
 
             setFormData({startTime: '', endTime: '', purpose: ''});
             reloadReservations();
-            setTimeout(reloadReservations, 1000);
+            
+            // Use a delay to fetch the latest data after the server processes the creation
+            setTimeout(() => {
+                reloadReservations();
+            }, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
@@ -189,7 +199,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                 life: 3000
             });
         }
-    };
+    }, [roomId, date, formData, toast, reloadReservations, validateForm]);
 
     const timeSlots = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
