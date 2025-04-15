@@ -1,5 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {apiClient} from '../utils/apiClient';
+import {useCallback, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {convertTimeFormat, fromDateString, toDateString} from '../utils/dateUtils';
 import {Card} from 'primereact/card';
@@ -11,6 +10,7 @@ import {Dropdown} from 'primereact/dropdown';
 import {ProgressSpinner} from 'primereact/progressspinner';
 import {Reservation, ReservationFormData} from '../types';
 import styles from './RoomSchedule.module.css';
+import {useAvailabilities, useReservationMutations, useReservations} from '../hooks/apiHooks';
 
 // Wrapper component for parameter validation
 export const RoomSchedule = () => {
@@ -30,8 +30,6 @@ export const RoomSchedule = () => {
 const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) => {
     const navigate = useNavigate();
     const [roomName, setRoomName] = useState<string>("");
-    const [reservations, setReservations] = useState<Reservation[]>([]);
-    const [loading, setLoading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState<number | null>(null);
     const [dragEnd, setDragEnd] = useState<number | null>(null);
@@ -47,6 +45,30 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
     const toast = useRef<Toast>(null);
     const purposeInputRef = useRef<HTMLInputElement>(null);
 
+    // Use SWR hooks for data fetching
+    const { data: availabilities, error: availabilitiesError, isLoading: isLoadingAvailabilities } = useAvailabilities(date);
+    const { data: reservations, error: reservationsError, isLoading: isLoadingReservations } = useReservations(date, roomId);
+    const { createReservation, deleteReservation } = useReservationMutations();
+    
+    // Set room name from availabilities data
+    if (availabilities && !roomName) {
+        const room = availabilities.find(a => a.roomId === roomId);
+        if (room) {
+            setRoomName(room.roomName);
+        }
+    }
+
+    // Show errors from SWR if available
+    if (availabilitiesError || reservationsError) {
+        const error = availabilitiesError || reservationsError;
+        toast.current?.show({
+            severity: 'error',
+            summary: 'Error',
+            detail: error?.message || 'An error occurred',
+            life: 3000
+        });
+    }
+
     const timeOptions = (() => {
         const options = [];
         for (let hour = 0; hour < 24; hour++) {
@@ -56,12 +78,6 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         }
         return options;
     })();
-
-    // Memoize the reloadReservations function to avoid recreating it on each render
-    const reloadReservations = useCallback(async () => {
-        const reservations = await apiClient.getReservations(date, roomId);
-        setReservations(reservations);
-    }, [date, roomId]);
 
     const handleDateChange = (offset: number) => {
         const currentDate = fromDateString(date);
@@ -78,7 +94,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         if (!selectedReservation) return;
 
         try {
-            await apiClient.deleteReservation(selectedReservation.reservationId);
+            await deleteReservation(selectedReservation.reservationId, date, roomId);
 
             toast.current?.show({
                 severity: 'success',
@@ -89,12 +105,6 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
 
             setDialogVisible(false);
             setSelectedReservation(null);
-            reloadReservations();
-            
-            // Use a delay to fetch the latest data after the server processes the deletion
-            setTimeout(() => {
-                reloadReservations();
-            }, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
@@ -103,36 +113,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                 life: 3000
             });
         }
-    }, [selectedReservation, reloadReservations]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const availabilities = await apiClient.getAvailabilities(date);
-                const room = availabilities.find(a => a.roomId === roomId);
-                if (room) {
-                    setRoomName(room.roomName);
-                } else {
-                    throw new Error('Room not found');
-                }
-                reloadReservations();
-            } catch (err) {
-                toast.current?.show({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: err instanceof Error ? err.message : 'An error occurred',
-                    life: 3000
-                });
-                setRoomName("");
-                setReservations([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [date, roomId, reloadReservations]); // Added reloadReservations to dependency array
+    }, [selectedReservation, deleteReservation, date, roomId]);
 
     // Memoize the validateForm function
     const validateForm = useCallback((data: ReservationFormData): string | null => {
@@ -169,7 +150,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         }
 
         try {
-            await apiClient.createReservation({
+            await createReservation({
                 roomId: roomId,
                 date: date,
                 startTime: formData.startTime,
@@ -185,12 +166,6 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
             });
 
             setFormData({startTime: '', endTime: '', purpose: ''});
-            reloadReservations();
-            
-            // Use a delay to fetch the latest data after the server processes the creation
-            setTimeout(() => {
-                reloadReservations();
-            }, 1000);
         } catch (err) {
             toast.current?.show({
                 severity: 'error',
@@ -199,7 +174,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                 life: 3000
             });
         }
-    }, [roomId, date, formData, toast, reloadReservations, validateForm]);
+    }, [roomId, date, formData, createReservation, validateForm]);
 
     const timeSlots = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
@@ -253,10 +228,13 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
         setDragStart(null);
         setDragEnd(null);
     };
+    
+    const isLoading = isLoadingAvailabilities || isLoadingReservations;
+    
     return (
         <Card className="mt-4">
             <Toast ref={toast}/>
-            {loading && (
+            {isLoading && (
                 <div className="flex justify-content-center mt-4">
                     <ProgressSpinner
                         style={{width: '50px', height: '50px'}}
@@ -299,21 +277,22 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                     <div className={styles.roomTitle}>
                         <h2 className={styles.roomName}>{roomName}</h2>
                         <div className={styles.scheduleDate}>
-                            <button
-                                className={styles.dateNavButton}
+                            <Button
+                                icon="pi pi-chevron-left"
+                                label="Previous"
+                                className="p-button-text"
                                 onClick={() => handleDateChange(-1)}
                                 aria-label="Previous day"
-                            >
-                                ← Previous
-                            </button>
-                            <span>{date}</span>
-                            <button
-                                className={styles.dateNavButton}
-                                onClick={() => handleDateChange(1)}
+                            />
+                            <span className="mx-2 font-semibold">{date}</span>
+                            <Button
+                                icon="pi pi-chevron-right"
+                                label="Next"
+                                className="p-button-text"
+                                onClick={() => handleDateChange(1)} 
                                 aria-label="Next day"
-                            >
-                                Next →
-                            </button>
+                                iconPos="right"
+                            />
                         </div>
                     </div>
                     <div
@@ -341,7 +320,7 @@ const RoomScheduleContent = ({roomId, date}: { roomId: string; date: string }) =
                                 />
                             </div>
                         ))}
-                        {reservations.map((reservation, index) => (
+                        {reservations && reservations.map((reservation, index) => (
                             <div
                                 key={index}
                                 className={styles.reservation}

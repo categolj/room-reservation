@@ -1,5 +1,4 @@
-import {useEffect, useRef, useState} from 'react'
-import {apiClient} from '../utils/apiClient';
+import {useRef, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 import {Availability} from '../types'
 import {Calendar} from 'primereact/calendar'
@@ -10,53 +9,36 @@ import {Card} from 'primereact/card'
 import {ProgressSpinner} from 'primereact/progressspinner'
 import {Button} from 'primereact/button'
 import {fromDateString, toDateString} from '../utils/dateUtils';
+import {useAvailabilities} from '../hooks/apiHooks';
 
 export const RoomList = () => {
     const navigate = useNavigate();
     const {date: urlDate} = useParams<{ date: string }>();
-    const [availabilities, setAvailabilities] = useState<Availability[]>([]);
     const [date, setDate] = useState<Date>(() => {
         if (urlDate) {
             return fromDateString(urlDate);
         }
         return new Date();
     });
-    const [loading, setLoading] = useState<boolean>(false);
     const toast = useRef<Toast>(null);
 
-    useEffect(() => {
-        if (urlDate) {
-            setDate(fromDateString(urlDate));
-        }
-    }, [urlDate]);
+    // Use SWR hook for fetching availabilities
+    const dateStr = toDateString(date);
+    const {data: availabilities, error, isLoading} = useAvailabilities(dateStr);
+
+    // Show error toast if needed
+    if (error) {
+        toast.current?.show({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message || 'An error occurred',
+            life: 3000
+        });
+    }
 
     const handleScheduleClick = (roomId: string) => {
-        const dateStr = toDateString(date);
         navigate(`/${dateStr}/rooms/${roomId}`);
     };
-
-    useEffect(() => {
-        const fetchAvailabilities = async () => {
-            setLoading(true);
-            try {
-                const dateStr = toDateString(date);
-                const data = await apiClient.getAvailabilities(dateStr);
-                setAvailabilities(data);
-            } catch (err) {
-                toast.current?.show({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: err instanceof Error ? err.message : 'An error occurred',
-                    life: 3000
-                });
-                setAvailabilities([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAvailabilities();
-    }, [date]);
 
     const header = (
         <div className="flex flex-column gap-3">
@@ -103,7 +85,7 @@ export const RoomList = () => {
                 />
             </div>
             <div className="text-lg">
-                Available Rooms for {toDateString(date)}
+                Available Rooms for {dateStr}
             </div>
         </div>
     );
@@ -113,10 +95,10 @@ export const RoomList = () => {
             <Toast ref={toast}/>
 
             <DataTable
-                value={availabilities}
+                value={availabilities || []}
                 header={header}
                 emptyMessage="No rooms available for this date"
-                loading={loading}
+                loading={isLoading}
                 stripedRows
                 showGridlines
                 responsiveLayout="scroll"
@@ -140,7 +122,7 @@ export const RoomList = () => {
                 />
             </DataTable>
 
-            {loading && (
+            {isLoading && (
                 <div className="flex justify-content-center mt-4">
                     <ProgressSpinner
                         style={{width: '50px', height: '50px'}}
