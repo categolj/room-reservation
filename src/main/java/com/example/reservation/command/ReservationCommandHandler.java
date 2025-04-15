@@ -11,11 +11,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.UUID;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.IdGenerator;
 
-@Service
+@Component
 public class ReservationCommandHandler {
 
 	private final EventStore eventStore;
