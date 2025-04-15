@@ -2,12 +2,13 @@ package com.example.config;
 
 import com.example.availability.query.AvailabilityService;
 import com.example.reservation.query.ReservationService;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 @Configuration(proxyBeanMethods = false)
 public class McpConfig {
@@ -22,9 +23,9 @@ public class McpConfig {
 
 	private static class DateTimeTools {
 
-		@Tool(description = "Get the current date and time in ISO 8601 format.")
+		@Tool(description = "Get the current date and time in the users timezone")
 		public String getCurrentDateTime() {
-			return OffsetDateTime.now().toString();
+			return LocalDateTime.now().atZone(LocaleContextHolder.getTimeZone().toZoneId()).toString();
 		}
 
 	}

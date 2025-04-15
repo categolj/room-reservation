@@ -19,6 +19,8 @@ public class AvailabilityService {
 			Retrieves room availability information for a specific date.
 			Returns a list of availability views for all rooms on the given date.
 			This information can be used to determine which rooms are available for reservation at what times.
+			The output must include not only the room name but also the roomId so that the UUID can be inherited.
+			This is VERY important.
 			""")
 	public List<AvailabilityView> getAvailabilitiesByDate(
 			@ToolParam(description = "The date for which to retrieve room availability information.") LocalDate date) {

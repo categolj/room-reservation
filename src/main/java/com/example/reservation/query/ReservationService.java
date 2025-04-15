@@ -3,11 +3,18 @@ package com.example.reservation.query;
 import com.example.reservation.command.CancelReservationCommand;
 import com.example.reservation.command.RequestReservationCommand;
 import com.example.reservation.command.ReservationCommandHandler;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -32,6 +39,7 @@ public class ReservationService {
 	@Tool(description = """
 			Retrieves a reservation by its unique identifier.
 			Returns an Optional containing the reservation view if found, or an empty Optional if the reservation does not exist.
+			Don't forget that the reservationId param is a UUID.
 			""")
 	public Optional<ReservationView> getReservation(
 			@ToolParam(description = "The unique identifier of the reservation to retrieve.") UUID reservationId) {
@@ -41,6 +49,8 @@ public class ReservationService {
 	@Tool(description = """
 			Finds all reservations for a specific room on a given date.
 			Returns a list of reservation views matching the room ID and date criteria.
+			Don't forget that the roomId param is a UUID and the date param is a date in yyyy-mm-dd format.
+			The output should include reservationId so that the UUID can be inherited.
 			""")
 	public List<ReservationView> findByRoomIdAndDate(
 			@ToolParam(description = "The unique identifier of the room to find reservations for.") UUID roomId,
@@ -51,6 +61,7 @@ public class ReservationService {
 	@Tool(description = """
 			Creates a new reservation request based on the provided details.
 			Returns the newly generated reservation ID.
+			Don't forget that the reservationId param is a UUID, the date param is a date in yyyy-mm-dd format, and startTime and endTime are times in HH:mm:ss format.
 			""")
 	public UUID requestReservation(@ToolParam(
 			description = "A record containing all necessary information for the reservation including room ID, date, start time, end time, and purpose.") ReservationRequest request) {
@@ -64,6 +75,7 @@ public class ReservationService {
 
 	@Tool(description = """
 			Cancels an existing reservation based on its unique identifier.
+			Don't forget that the reservationId param is a UUID.
 			""")
 	public void cancelReservation(
 			@ToolParam(description = "The unique identifier of the reservation to cancel.") UUID reservationId) {
@@ -72,8 +84,40 @@ public class ReservationService {
 		this.reservationCommandHandler.handleCancelReservation(command);
 	}
 
-	public record ReservationRequest(UUID roomId, LocalDate date, LocalTime startTime, LocalTime endTime,
-			String purpose) {
+	public record ReservationRequest(UUID roomId, LocalDate date,
+			@JsonDeserialize(using = FlexibleLocalTimeDeserializer.class) LocalTime startTime,
+			@JsonDeserialize(using = FlexibleLocalTimeDeserializer.class) LocalTime endTime, String purpose) {
+
+		/**
+		 * Custom deserializer for LocalTime that accepts more flexible input formats.
+		 * Extracts just the HH:mm:ss part from the time string, ignoring any timezone
+		 * information or other suffixes. This is particularly useful for processing
+		 * inputs from LLMs which might include additional time information not compatible
+		 * with LocalTime.
+		 */
+		public static class FlexibleLocalTimeDeserializer extends JsonDeserializer<LocalTime> {
+
+			// Pattern to extract just the time part (HH:mm:ss)
+			private static final Pattern TIME_PATTERN = Pattern.compile("(\\d{2}:\\d{2}:\\d{2}).*");
+
+			@Override
+			public LocalTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+				String value = p.getValueAsString();
+				if (value == null) {
+					return null;
+				}
+
+				// Extract just the HH:mm:ss part from the string
+				Matcher matcher = TIME_PATTERN.matcher(value);
+				if (matcher.matches()) {
+					value = matcher.group(1);
+				}
+
+				// Parse the extracted time string
+				return LocalTime.parse(value);
+			}
+
+		}
 	}
 
 }
