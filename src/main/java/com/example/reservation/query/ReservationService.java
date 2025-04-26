@@ -1,5 +1,8 @@
 package com.example.reservation.query;
 
+import am.ik.yavi.arguments.Arguments;
+import am.ik.yavi.arguments.Arguments5;
+import am.ik.yavi.arguments.Arguments5Validator;
 import com.example.reservation.command.CancelReservationCommand;
 import com.example.reservation.command.RequestReservationCommand;
 import com.example.reservation.command.ReservationCommandHandler;
@@ -11,6 +14,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -19,6 +23,13 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 import org.springframework.util.IdGenerator;
+import org.springframework.util.StringUtils;
+
+import static am.ik.yavi.arguments.ArgumentsValidators.split;
+import static com.example.reservation.command.Reservation.dateValidator;
+import static com.example.reservation.command.Reservation.purposeValidator;
+import static com.example.reservation.command.Reservation.roomIdValidator;
+import static com.example.reservation.command.Reservation.starTimeAndEndTimeValidator;
 
 @Service
 public class ReservationService {
@@ -88,6 +99,18 @@ public class ReservationService {
 			@JsonDeserialize(using = FlexibleLocalTimeDeserializer.class) LocalTime startTime,
 			@JsonDeserialize(using = FlexibleLocalTimeDeserializer.class) LocalTime endTime, String purpose) {
 
+		public static final Arguments5Validator<UUID, LocalDate, LocalTime, LocalTime, String, ReservationRequest> validator = Arguments5Validator
+			.unwrap(split(roomIdValidator, dateValidator).apply(Arguments::of)
+				.<Arguments5<UUID, LocalDate, LocalTime, LocalTime, String>>compose(Arguments5::first2)
+				.combine(starTimeAndEndTimeValidator.wrap().compose(args -> Arguments.of(args.arg3(), args.arg4())))
+				.combine(purposeValidator.wrap().compose(args -> Arguments.of(args.arg5())))
+				.apply((a1, a2, a3) -> new ReservationRequest(Objects.requireNonNull(a1).arg1(), a1.arg2(),
+						Objects.requireNonNull(a2).arg1(), a2.arg2(), a3)));
+
+		public ReservationRequest {
+			validator.lazy().validated(roomId, date, startTime, endTime, purpose);
+		}
+
 		/**
 		 * Custom deserializer for LocalTime that accepts more flexible input formats.
 		 * Extracts just the HH:mm:ss part from the time string, ignoring any timezone
@@ -103,7 +126,7 @@ public class ReservationService {
 			@Override
 			public LocalTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
 				String value = p.getValueAsString();
-				if (value == null) {
+				if (!StringUtils.hasText(value)) {
 					return null;
 				}
 

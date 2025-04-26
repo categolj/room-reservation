@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.web.client.RestClient;
@@ -128,6 +130,40 @@ class ReservationControllerTest {
 			assertThat(reservation.get("endTime").asText()).isEqualTo("14:00:00");
 			assertThat(reservation.get("purpose").asText()).isEqualTo("New Reservation Test");
 		});
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void requestReservationInvalidRequest() {
+		var request = """
+				{
+					"roomId": "018422b2-4843-7a62-935b-b4e65649de3e",
+					"startTime": "15:00:00",
+					"endTime": "14:00:00",
+					"purpose": ""
+				}
+				""";
+		ResponseEntity<ProblemDetail> response = this.restClient.post()
+			.uri("/api/reservations")
+			.header("Content-Type", "application/json")
+			.body(request)
+			.retrieve()
+			.toEntity(ProblemDetail.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		ProblemDetail problemDetail = response.getBody();
+		assertThat(problemDetail).isNotNull();
+		assertThat(problemDetail.getTitle()).isEqualTo("Bad Request");
+		assertThat(problemDetail.getDetail()).isEqualTo("Constraint violations found!");
+		Map<String, Object> properties = problemDetail.getProperties();
+		assertThat(properties).isNotNull();
+		assertThat(properties).containsKey("violations");
+		List<Map<String, Object>> violations = (List<Map<String, Object>>) properties.get("violations");
+		assertThat(violations).containsExactlyInAnyOrderElementsOf(
+				List.of(Map.of("message", "\"date\" must not be null", "field", "date"),
+						Map.of("message", "\"endTime\" must be later than \"startTime\"", "field", "endTime"),
+						Map.of("message",
+								"The byte size of \"purpose\" must be greater than or equal to 1. The given size is 0",
+								"field", "purpose")));
 	}
 
 	@Test
