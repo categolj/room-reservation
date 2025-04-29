@@ -88,7 +88,7 @@ public class Reservation {
 			.split(dateValidator)
 			.apply(Arguments::of)
 			.<Arguments7<UUID, UUID, LocalDate, LocalTime, LocalTime, String, UUID>>compose(Arguments7::first3)
-			.combine(starTimeAndEndTimeValidator.wrap().compose(args -> Arguments.of(args.arg4(), args.arg5())))
+			.combine(starTimeAndEndTimeValidator.compose(args -> Arguments.of(args.arg4(), args.arg5())))
 			.combine(purposeValidator.split(userIdValidator).apply(Arguments::of).compose(Arguments7::last2))
 			.apply((a1, a2, a3) -> new Reservation(a1.arg1(), a1.arg2(), a1.arg3(), a2.arg1(), a2.arg2(), a3.arg1(),
 					a3.arg2())));
