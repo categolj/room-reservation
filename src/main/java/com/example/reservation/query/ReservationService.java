@@ -102,7 +102,7 @@ public class ReservationService {
 		public static final Arguments5Validator<UUID, LocalDate, LocalTime, LocalTime, String, ReservationRequest> validator = Arguments5Validator
 			.unwrap(split(roomIdValidator, dateValidator).apply(Arguments::of)
 				.<Arguments5<UUID, LocalDate, LocalTime, LocalTime, String>>compose(Arguments5::first2)
-				.combine(starTimeAndEndTimeValidator.wrap().compose(args -> Arguments.of(args.arg3(), args.arg4())))
+				.combine(starTimeAndEndTimeValidator.compose(args -> Arguments.of(args.arg3(), args.arg4())))
 				.combine(purposeValidator.wrap().compose(args -> Arguments.of(args.arg5())))
 				.apply((a1, a2, a3) -> new ReservationRequest(Objects.requireNonNull(a1).arg1(), a1.arg2(),
 						Objects.requireNonNull(a2).arg1(), a2.arg2(), a3)));
