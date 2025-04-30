@@ -90,8 +90,8 @@ public class Reservation {
 			.<Arguments7<UUID, UUID, LocalDate, LocalTime, LocalTime, String, UUID>>compose(Arguments7::first3)
 			.combine(starTimeAndEndTimeValidator.compose(args -> Arguments.of(args.arg4(), args.arg5())))
 			.combine(purposeValidator.split(userIdValidator).apply(Arguments::of).compose(Arguments7::last2))
-			.apply((a1, a2, a3) -> new Reservation(a1.arg1(), a1.arg2(), a1.arg3(), a2.arg1(), a2.arg2(), a3.arg1(),
-					a3.arg2())));
+			.apply((a1, a2, a3) -> new Reservation(Objects.requireNonNull(a1).arg1(), a1.arg2(), a1.arg3(),
+					Objects.requireNonNull(a2).arg1(), a2.arg2(), Objects.requireNonNull(a3).arg1(), a3.arg2())));
 
 	private Reservation(UUID reservationId, UUID roomId, LocalDate date, LocalTime startTime, LocalTime endTime,
 			String purpose, UUID userId) {
