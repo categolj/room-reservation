@@ -2,6 +2,7 @@ package com.example.reservation.web;
 
 import am.ik.yavi.arguments.Arguments;
 import am.ik.yavi.arguments.Arguments1Validator;
+import am.ik.yavi.core.ConstraintViolation;
 import am.ik.yavi.core.ConstraintViolations;
 import com.example.reservation.query.ReservationService;
 import com.example.reservation.query.ReservationService.ReservationRequest;
@@ -48,21 +49,22 @@ public class ReservationController {
 
 	@PostMapping(path = "/api/reservations")
 	public ResponseEntity<?> requestReservation(@RequestBody Map<String, String> req, UriComponentsBuilder uriBuilder) {
-		return reservationRequestParser.validate(req)
-			.fold(violations -> ResponseEntity.badRequest()
-				.body(new ErrorResponse("Constraint violations found!", ConstraintViolations.of(violations))),
-					request -> {
-						UUID reservationId = this.reservationService.requestReservation(request);
-						return ResponseEntity
-							.created(uriBuilder.path("/api/reservations/{reservationId}").build(reservationId))
-							.build();
-					});
+		return reservationRequestParser.validate(req).fold(this::badRequest, request -> {
+			UUID reservationId = this.reservationService.requestReservation(request);
+			return ResponseEntity.created(uriBuilder.path("/api/reservations/{reservationId}").build(reservationId))
+				.build();
+		});
 	}
 
 	@DeleteMapping(path = "/api/reservations/{reservationId}")
 	public ResponseEntity<Void> cancelReservation(@PathVariable UUID reservationId) {
 		this.reservationService.cancelReservation(reservationId);
 		return ResponseEntity.noContent().build();
+	}
+
+	ResponseEntity<ErrorResponse> badRequest(List<ConstraintViolation> violations) {
+		return ResponseEntity.badRequest()
+			.body(new ErrorResponse("Constraint violations found!", ConstraintViolations.of(violations)));
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
