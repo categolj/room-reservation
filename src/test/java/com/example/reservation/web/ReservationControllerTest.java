@@ -19,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.web.client.RestClient;
@@ -138,32 +137,56 @@ class ReservationControllerTest {
 		var request = """
 				{
 					"roomId": "018422b2-4843-7a62-935b-b4e65649de3e",
+					"date": "%s",
 					"startTime": "15:00:00",
 					"endTime": "14:00:00",
-					"purpose": ""
+					"purpose": "demo"
 				}
-				""";
-		ResponseEntity<ProblemDetail> response = this.restClient.post()
+				""".formatted(today);
+		ResponseEntity<ErrorResponse> response = this.restClient.post()
 			.uri("/api/reservations")
 			.header("Content-Type", "application/json")
 			.body(request)
 			.retrieve()
-			.toEntity(ProblemDetail.class);
+			.toEntity(ErrorResponse.class);
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-		ProblemDetail problemDetail = response.getBody();
+		ErrorResponse problemDetail = response.getBody();
 		assertThat(problemDetail).isNotNull();
-		assertThat(problemDetail.getTitle()).isEqualTo("Bad Request");
-		assertThat(problemDetail.getDetail()).isEqualTo("Constraint violations found!");
-		Map<String, Object> properties = problemDetail.getProperties();
-		assertThat(properties).isNotNull();
-		assertThat(properties).containsKey("violations");
-		List<Map<String, Object>> violations = (List<Map<String, Object>>) properties.get("violations");
+		assertThat(problemDetail.message()).isEqualTo("Constraint violations found!");
+		List<Map<String, String>> violations = problemDetail.violations();
 		assertThat(violations).containsExactlyInAnyOrderElementsOf(
-				List.of(Map.of("message", "\"date\" must not be null", "field", "date"),
-						Map.of("message", "\"endTime\" must be later than \"startTime\"", "field", "endTime"),
-						Map.of("message",
-								"The byte size of \"purpose\" must be greater than or equal to 1. The given size is 0",
-								"field", "purpose")));
+				List.of(Map.of("field", "endTime", "message", "\"endTime\" must be later than \"startTime\"")));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void requestReservationUnparsableRequest() {
+		var request = """
+				{
+					"roomId": "invalid-uuid",
+					"date": "invalid-date",
+					"startTime": "invalid-time",
+					"purpose": ""
+				}
+				""";
+		ResponseEntity<ErrorResponse> response = this.restClient.post()
+			.uri("/api/reservations")
+			.header("Content-Type", "application/json")
+			.body(request)
+			.retrieve()
+			.toEntity(ErrorResponse.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		ErrorResponse problemDetail = response.getBody();
+		assertThat(problemDetail).isNotNull();
+		assertThat(problemDetail.message()).isEqualTo("Constraint violations found!");
+		List<Map<String, String>> violations = problemDetail.violations();
+		assertThat(violations).containsExactlyInAnyOrderElementsOf(List.of(
+				Map.of("field", "roomId", "message", "\"roomId\" must be a valid UUID"), //
+				Map.of("field", "date", "message",
+						"\"date\" must be a valid representation of a local date using the pattern: uuuu-MM-dd. The give value is: invalid-date"), //
+				Map.of("field", "startTime", "message", "\"startTime\" must match (\\d{2}:\\d{2}:\\d{2}).*"),
+				Map.of("field", "endTime", "message", "\"endTime\" must not be blank"),
+				Map.of("field", "purpose", "message", "\"purpose\" must not be blank")));
 	}
 
 	@Test

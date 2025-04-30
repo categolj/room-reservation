@@ -1,6 +1,7 @@
 package com.example.reservation.command;
 
 import am.ik.yavi.arguments.Arguments;
+import am.ik.yavi.arguments.Arguments1Validator;
 import am.ik.yavi.arguments.Arguments2;
 import am.ik.yavi.arguments.Arguments2Validator;
 import am.ik.yavi.arguments.Arguments7;
@@ -26,6 +27,8 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.jilt.Builder;
 import org.jilt.BuilderStyle;
 
@@ -47,17 +50,43 @@ public class Reservation {
 
 	private boolean cancelled;
 
+	private static final Function<String, Arguments1Validator<String, UUID>> uuidParser = name -> StringValidatorBuilder
+		.of("roomId", c -> c.notBlank().uuid())
+		.build(UUID::fromString);
+
 	public static final ObjectValidator<UUID, UUID> reservationIdValidator = ObjectValidatorBuilder
 		.<UUID>of("reservationId", Constraint::notNull)
 		.build();
+
+	public static final Arguments1Validator<String, UUID> reservationIdParser = uuidParser.apply("reservationId");
 
 	public static final ObjectValidator<UUID, UUID> roomIdValidator = ObjectValidatorBuilder
 		.<UUID>of("roomId", Constraint::notNull)
 		.build();
 
+	public static final Arguments1Validator<String, UUID> roomIdParser = uuidParser.apply("roomId");
+
 	public static final LocalDateValidator<LocalDate> dateValidator = LocalDateValidatorBuilder
 		.of("date", c -> c.notNull())
 		.build();
+
+	private static final Pattern TIME_PATTERN = Pattern.compile("(\\d{2}:\\d{2}:\\d{2}).*");
+
+	public static final Arguments1Validator<String, LocalDate> dateParser = StringValidatorBuilder
+		.of("date", c -> c.notBlank().isoLocalDate())
+		.build(LocalDate::parse);
+
+	public static final Function<String, Arguments1Validator<String, LocalTime>> timeParser = name -> StringValidatorBuilder
+		.of(name, c -> c.notBlank().pattern(TIME_PATTERN))
+		.build(s -> {
+			Matcher matcher = TIME_PATTERN.matcher(s);
+			if (matcher.matches()) {
+				return LocalTime.parse(matcher.group(1));
+			}
+			else {
+				return null; // should not happen
+			}
+		});
 
 	private static final Function<String, LocalTimeValidator<LocalTime>> timeValidator = name -> LocalTimeValidatorBuilder
 		.of(name,
@@ -75,13 +104,19 @@ public class Reservation {
 							"time.endtimemustbelaterthanstarttime", "\"endTime\" must be later than \"startTime\""))
 			.build());
 
+	public static final Arguments1Validator<String, LocalTime> startTimeParser = timeParser.apply("startTime");
+
+	public static final Arguments1Validator<String, LocalTime> endTimeParser = timeParser.apply("endTime");
+
 	public static StringValidator<String> purposeValidator = StringValidatorBuilder
-		.of("purpose", c -> c.notNull().asByteArray().greaterThanOrEqual(1).lessThanOrEqual(255))
+		.of("purpose", c -> c.notBlank().asByteArray().lessThanOrEqual(255))
 		.build();
 
 	public static final ObjectValidator<UUID, UUID> userIdValidator = ObjectValidatorBuilder
 		.<UUID>of("userId", Constraint::notNull)
 		.build();
+
+	public static final Arguments1Validator<String, UUID> userIdParser = uuidParser.apply("userId");
 
 	public static final Arguments7Validator<UUID, UUID, LocalDate, LocalTime, LocalTime, String, UUID, Reservation> reservationValidator = Arguments7Validator
 		.unwrap(reservationIdValidator.split(roomIdValidator)
@@ -92,6 +127,12 @@ public class Reservation {
 			.combine(purposeValidator.split(userIdValidator).apply(Arguments::of).compose(Arguments7::last2))
 			.apply((a1, a2, a3) -> new Reservation(Objects.requireNonNull(a1).arg1(), a1.arg2(), a1.arg3(),
 					Objects.requireNonNull(a2).arg1(), a2.arg2(), Objects.requireNonNull(a3).arg1(), a3.arg2())));
+
+	public static final Arguments7Validator<String, String, String, String, String, String, String, Reservation> reservationParser = ArgumentsValidators
+		.split(reservationIdParser, roomIdParser, dateParser, startTimeParser, endTimeParser, purposeValidator,
+				userIdParser)
+		.apply(Arguments::of)
+		.andThen(reservationValidator.wrap());
 
 	private Reservation(UUID reservationId, UUID roomId, LocalDate date, LocalTime startTime, LocalTime endTime,
 			String purpose, UUID userId) {

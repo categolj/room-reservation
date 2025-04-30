@@ -1,9 +1,14 @@
 package com.example.reservation.web;
 
+import am.ik.yavi.arguments.Arguments;
+import am.ik.yavi.arguments.Arguments1Validator;
+import am.ik.yavi.core.ConstraintViolations;
 import com.example.reservation.query.ReservationService;
+import com.example.reservation.query.ReservationService.ReservationRequest;
 import com.example.reservation.query.ReservationView;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +28,10 @@ public class ReservationController {
 
 	private final ReservationService reservationService;
 
+	private final Arguments1Validator<Map<String, String>, ReservationRequest> reservationRequestParser = ReservationRequest.parser
+		.compose(req -> Arguments.of(req.get("roomId"), req.get("date"), req.get("startTime"), req.get("endTime"),
+				req.get("purpose")));
+
 	public ReservationController(ReservationService reservationService) {
 		this.reservationService = reservationService;
 	}
@@ -38,11 +47,16 @@ public class ReservationController {
 	}
 
 	@PostMapping(path = "/api/reservations")
-	public ResponseEntity<Void> requestReservation(@RequestBody ReservationService.ReservationRequest request,
-			UriComponentsBuilder uriBuilder) {
-		UUID reservationId = this.reservationService.requestReservation(request);
-		return ResponseEntity.created(uriBuilder.path("/api/reservations/{reservationId}").build(reservationId))
-			.build();
+	public ResponseEntity<?> requestReservation(@RequestBody Map<String, String> req, UriComponentsBuilder uriBuilder) {
+		return reservationRequestParser.validate(req)
+			.fold(violations -> ResponseEntity.badRequest()
+				.body(new ErrorResponse("Constraint violations found!", ConstraintViolations.of(violations))),
+					request -> {
+						UUID reservationId = this.reservationService.requestReservation(request);
+						return ResponseEntity
+							.created(uriBuilder.path("/api/reservations/{reservationId}").build(reservationId))
+							.build();
+					});
 	}
 
 	@DeleteMapping(path = "/api/reservations/{reservationId}")

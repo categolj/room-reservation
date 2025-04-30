@@ -3,6 +3,7 @@ package com.example.reservation.query;
 import am.ik.yavi.arguments.Arguments;
 import am.ik.yavi.arguments.Arguments5;
 import am.ik.yavi.arguments.Arguments5Validator;
+import am.ik.yavi.arguments.ArgumentsValidators;
 import com.example.reservation.command.CancelReservationCommand;
 import com.example.reservation.command.RequestReservationCommand;
 import com.example.reservation.command.ReservationCommandHandler;
@@ -26,10 +27,14 @@ import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 
 import static am.ik.yavi.arguments.ArgumentsValidators.split;
+import static com.example.reservation.command.Reservation.dateParser;
 import static com.example.reservation.command.Reservation.dateValidator;
+import static com.example.reservation.command.Reservation.endTimeParser;
 import static com.example.reservation.command.Reservation.purposeValidator;
+import static com.example.reservation.command.Reservation.roomIdParser;
 import static com.example.reservation.command.Reservation.roomIdValidator;
 import static com.example.reservation.command.Reservation.starTimeAndEndTimeValidator;
+import static com.example.reservation.command.Reservation.startTimeParser;
 
 @Service
 public class ReservationService {
@@ -106,6 +111,11 @@ public class ReservationService {
 				.combine(purposeValidator.wrap().compose(args -> Arguments.of(args.arg5())))
 				.apply((a1, a2, a3) -> new ReservationRequest(Objects.requireNonNull(a1).arg1(), a1.arg2(),
 						Objects.requireNonNull(a2).arg1(), a2.arg2(), a3)));
+
+		public static final Arguments5Validator<String, String, String, String, String, ReservationRequest> parser = ArgumentsValidators
+			.split(roomIdParser, dateParser, startTimeParser, endTimeParser, purposeValidator)
+			.apply(Arguments::of)
+			.andThen(validator.wrap());
 
 		public ReservationRequest {
 			validator.lazy().validated(roomId, date, startTime, endTime, purpose);
