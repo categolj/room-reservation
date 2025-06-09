@@ -70,7 +70,7 @@ public class Reservation {
 		.of("date", c -> c.notNull())
 		.build();
 
-	private static final Pattern TIME_PATTERN = Pattern.compile("(\\d{2}:\\d{2}:\\d{2}).*");
+	private static final Pattern TIME_PATTERN = Pattern.compile("(\\d{2}:\\d{2})(:\\d{2})?.*");
 
 	public static final Arguments1Validator<String, LocalDate> dateParser = StringValidatorBuilder
 		.of("date", c -> c.notBlank().isoLocalDate())
