@@ -184,7 +184,7 @@ class ReservationControllerTest {
 				Map.of("field", "roomId", "message", "\"roomId\" must be a valid UUID"), //
 				Map.of("field", "date", "message",
 						"\"date\" must be a valid representation of a local date using the pattern: uuuu-MM-dd. The give value is: invalid-date"), //
-				Map.of("field", "startTime", "message", "\"startTime\" must match (\\d{2}:\\d{2}:\\d{2}).*"),
+				Map.of("field", "startTime", "message", "\"startTime\" must match (\\d{2}:\\d{2})(:\\d{2})?.*"),
 				Map.of("field", "endTime", "message", "\"endTime\" must not be blank"),
 				Map.of("field", "purpose", "message", "\"purpose\" must not be blank")));
 	}
