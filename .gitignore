@@ -35,3 +35,4 @@ application-default.properties
 
 advisor*
 .advisor/
+META-INF/LICENSE
